@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -42,10 +43,12 @@ func GetEquationListEndpoint(w http.ResponseWriter, req *http.Request) {
 
 // CreateEquationEndpoint used for creating new equation and getting result
 func CreateEquationEndpoint(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
 	var eq Equation
 	_ = json.NewDecoder(req.Body).Decode(&eq)
-	eq.ID = params["id"]
+	b := make([]byte, 16)
+	rand.Read(b)
+	var uuid = fmt.Sprintf("%X-%X-%X-%X-%X", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+	eq.ID = uuid
 	fmt.Println(eq.EqStr)
 	var text = strings.Replace(eq.EqStr, " ", "", -1)
 	fmt.Println(text)
@@ -53,7 +56,7 @@ func CreateEquationEndpoint(w http.ResponseWriter, req *http.Request) {
 	eq.ResultStr = strconv.FormatFloat(res, 'f', 6, 64)
 	fmt.Println(err)
 	Eq = append(Eq, eq)
-	json.NewEncoder(w).Encode(Eq)
+	json.NewEncoder(w).Encode(eq)
 }
 
 // DeleteEquationEndpoint used for deleting old equation by ID
@@ -71,8 +74,8 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/calc", GetEquationListEndpoint).Methods("GET")
 	router.HandleFunc("/calc/{id}", GetEquationEndpoint).Methods("GET")
-	router.HandleFunc("/calc/{id}", CreateEquationEndpoint).Methods("POST")
+	router.HandleFunc("/calc", CreateEquationEndpoint).Methods("POST")
 	router.HandleFunc("/calc/{id}", DeleteEquationEndpoint).Methods("DELETE")
-	log.Fatal(http.ListenAndServe(":80", router))
+	log.Fatal(http.ListenAndServe(":1880", router))
 
 }
