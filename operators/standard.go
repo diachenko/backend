@@ -68,6 +68,15 @@ var (
 			return math.Pow(args[0], args[1])
 		},
 	}
+	abs = &Operator{
+		Name:          "abs",
+		Precedence:    0,
+		Associativity: L,
+		Args:          1,
+		Operation: func(args []float64) float64 {
+			return math.Abs(args[0])
+		},
+	}
 )
 
 func init() {
@@ -78,4 +87,5 @@ func init() {
 	Register(mul)
 	Register(mod)
 	Register(div)
+	Register(abs)
 }
