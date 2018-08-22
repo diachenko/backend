@@ -4,10 +4,12 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"os"
+	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 
@@ -49,14 +51,22 @@ func CreateEquationEndpoint(w http.ResponseWriter, req *http.Request) {
 	rand.Read(b)
 	var uuid = fmt.Sprintf("%X-%X-%X-%X-%X", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 	eq.ID = uuid
-	fmt.Println(eq.EqStr)
+
+	f, _ := os.OpenFile("output.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	log.SetOutput(f)
+
+	log.Println("Input eq: " + eq.EqStr)
+
 	var text = strings.Replace(eq.EqStr, " ", "", -1)
-	fmt.Println(text)
+	log.Println("Minified eq: " + text)
 	res, err := compute.Evaluate(text)
 	eq.ResultStr = strconv.FormatFloat(res, 'f', 6, 64)
-	fmt.Println(err)
+	if err != nil {
+		log.Println(err.Error())
+	}
 	Eq = append(Eq, eq)
 	json.NewEncoder(w).Encode(eq)
+	f.Close()
 }
 
 // DeleteEquationEndpoint used for deleting old equation by ID
@@ -71,7 +81,7 @@ func DeleteEquationEndpoint(w http.ResponseWriter, req *http.Request) {
 }
 func main() {
 	file, _ := os.Create("output.txt")
-	fmt.Fprint(file, "Log started at:"  )
+	fmt.Fprint(file, "Log started at: "+time.Now().String()+"\n")
 	defer file.Close()
 
 	router := mux.NewRouter()
@@ -79,5 +89,5 @@ func main() {
 	router.HandleFunc("/calc/{id}", GetEquationEndpoint).Methods("GET")
 	router.HandleFunc("/calc", CreateEquationEndpoint).Methods("POST")
 	router.HandleFunc("/calc/{id}", DeleteEquationEndpoint).Methods("DELETE")
-	
+	log.Fatal(http.ListenAndServe(":1880", router))
 }
