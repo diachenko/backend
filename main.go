@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"log"
+	"os"
 	"net/http"
 	"strconv"
 	"strings"
@@ -41,7 +41,7 @@ func GetEquationListEndpoint(w http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(w).Encode(Eq)
 }
 
-// CreateEquationEndpoint used for creating new equation and getting result
+// CreateEquationEndpoint used for creating new equation in memory and getting result
 func CreateEquationEndpoint(w http.ResponseWriter, req *http.Request) {
 	var eq Equation
 	_ = json.NewDecoder(req.Body).Decode(&eq)
@@ -70,12 +70,14 @@ func DeleteEquationEndpoint(w http.ResponseWriter, req *http.Request) {
 	}
 }
 func main() {
+	file, _ := os.Create("output.txt")
+	fmt.Fprint(file, "Log started at:"  )
+	defer file.Close()
 
 	router := mux.NewRouter()
 	router.HandleFunc("/calc", GetEquationListEndpoint).Methods("GET")
 	router.HandleFunc("/calc/{id}", GetEquationEndpoint).Methods("GET")
 	router.HandleFunc("/calc", CreateEquationEndpoint).Methods("POST")
 	router.HandleFunc("/calc/{id}", DeleteEquationEndpoint).Methods("DELETE")
-	log.Fatal(http.ListenAndServe(":1880", router))
-
+	
 }
