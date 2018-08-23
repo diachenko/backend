@@ -4,10 +4,12 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"os"
+	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 
@@ -23,6 +25,14 @@ type Equation struct {
 
 // Eq Array of equations TODO: put into key-value store?
 var Eq []Equation
+
+// Logger method for anything
+func Logger (file string, msg string) {
+	f, _ := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	log.SetOutput(f)
+	f.Close()
+	return
+}
 
 // GetEquationEndpoint used for retriving old equation by ID
 func GetEquationEndpoint(w http.ResponseWriter, req *http.Request) {
@@ -49,12 +59,18 @@ func CreateEquationEndpoint(w http.ResponseWriter, req *http.Request) {
 	rand.Read(b)
 	var uuid = fmt.Sprintf("%X-%X-%X-%X-%X", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 	eq.ID = uuid
-	fmt.Println(eq.EqStr)
+
+	
+
+	Logger("Input eq: " + eq.EqStr, "output.txt")
+
 	var text = strings.Replace(eq.EqStr, " ", "", -1)
-	fmt.Println(text)
+	Logger("Minified eq: " + text, "output.txt")
 	res, err := compute.Evaluate(text)
 	eq.ResultStr = strconv.FormatFloat(res, 'f', 6, 64)
-	fmt.Println(err)
+	if err != nil {
+		Logger(err.Error(), "output.txt")
+	}
 	Eq = append(Eq, eq)
 	json.NewEncoder(w).Encode(eq)
 }
@@ -71,7 +87,7 @@ func DeleteEquationEndpoint(w http.ResponseWriter, req *http.Request) {
 }
 func main() {
 	file, _ := os.Create("output.txt")
-	fmt.Fprint(file, "Log started at:"  )
+	fmt.Fprint(file, "Log started at: "+time.Now().String()+"\n")
 	defer file.Close()
 
 	router := mux.NewRouter()
@@ -79,5 +95,5 @@ func main() {
 	router.HandleFunc("/calc/{id}", GetEquationEndpoint).Methods("GET")
 	router.HandleFunc("/calc", CreateEquationEndpoint).Methods("POST")
 	router.HandleFunc("/calc/{id}", DeleteEquationEndpoint).Methods("DELETE")
-	
+	log.Fatal(http.ListenAndServe(":1880", router))
 }
