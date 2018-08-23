@@ -27,9 +27,10 @@ type Equation struct {
 var Eq []Equation
 
 // Logger method for anything
-func Logger (file string, msg string) {
+func Logger (msg string, file string) {
 	f, _ := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	log.SetOutput(f)
+	log.Println(msg+"\n")
 	f.Close()
 	return
 }
@@ -60,17 +61,18 @@ func CreateEquationEndpoint(w http.ResponseWriter, req *http.Request) {
 	var uuid = fmt.Sprintf("%X-%X-%X-%X-%X", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 	eq.ID = uuid
 
-	
-
 	Logger("Input eq: " + eq.EqStr, "output.txt")
 
 	var text = strings.Replace(eq.EqStr, " ", "", -1)
+	
 	Logger("Minified eq: " + text, "output.txt")
+	
 	res, err := compute.Evaluate(text)
-	eq.ResultStr = strconv.FormatFloat(res, 'f', 6, 64)
 	if err != nil {
 		Logger(err.Error(), "output.txt")
 	}
+	
+	eq.ResultStr = strconv.FormatFloat(res, 'f', 6, 64)
 	Eq = append(Eq, eq)
 	json.NewEncoder(w).Encode(eq)
 }
